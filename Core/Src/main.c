@@ -3,7 +3,7 @@
  // Thời gian chờ đóng cửa (3 giây)
 #define DOOR_DELAY_MS        3000          
 
-uint32_t last_motion_time = 0; // thời điểm cuối cùng phát hiện chuyển động
+uint32_t last_motion_time = 0; 
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
