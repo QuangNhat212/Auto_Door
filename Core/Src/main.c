@@ -1,9 +1,9 @@
 #include "main.h"
 
-// --- CẤU HÌNH (Dễ dàng chỉnh sửa nếu phần cứng thay đổi) ---
-#define DOOR_DELAY_MS        3000            // Thời gian chờ đóng cửa (3 giây)
+ // Thời gian chờ đóng cửa (3 giây)
+#define DOOR_DELAY_MS        3000          
 
-uint32_t last_motion_time = 0; // Lưu thời điểm cuối cùng phát hiện chuyển động
+uint32_t last_motion_time = 0; // thời điểm cuối cùng phát hiện chuyển động
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -15,17 +15,15 @@ void Stop_Motor() {
 }
 
 void Open_Door() {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);   // Chiều Mở
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);   
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
 }
 
 void Close_Door() {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);   // Chiều Đóng
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);   
 }
 
-// Biến debug (để xem trong Live Expression nếu cần)
-uint8_t status_closed_ls1, status_opened_ls2, status_pir;
 
 int main(void)
 {
@@ -34,8 +32,6 @@ int main(void)
   MX_GPIO_Init();
 
   Stop_Motor();
-
-  // Khởi tạo thời gian ban đầu để tránh lỗi logic khi vừa bật nguồn
   last_motion_time = HAL_GetTick();
 
   while (1)
@@ -44,39 +40,27 @@ int main(void)
       uint8_t pir1 = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3);
       uint8_t pir2 = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4);
 
-      // LS1: Chạm = Cửa đã Đóng hoàn toàn
+      // LS1: Cửa đã Đóng hoàn toàn
       uint8_t limit_LS1 = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1);
-      // LS2: Chạm = Cửa đã Mở hoàn toàn
+      // LS2: Cửa đã Mở hoàn toàn
       uint8_t limit_LS2 = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2);
+      // Trạng thái cảm biến
+      uint8_t status_pir = (pir1 == GPIO_PIN_SET || pir2 == GPIO_PIN_SET) ? 1 : 0;
 
-      // Cập nhật biến debug
-      status_closed_ls1 = limit_LS1;
-      status_opened_ls2 = limit_LS2;
-      status_pir = (pir1 == GPIO_PIN_SET || pir2 == GPIO_PIN_SET) ? 1 : 0;
-      // Debug LED (nếu cần)
-      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, status_pir ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
-      // 2. XỬ LÝ LOGIC
 
       // KIỂM TRA CÓ NGƯỜI
       if (status_pir) {
-          // Reset bộ đếm thời gian ngay lập tức
           last_motion_time = HAL_GetTick();
 
-          // AN TOÀN: Bất kể đang làm gì, nếu có người -> Mở cửa ngay
           if (limit_LS2 != GPIO_PIN_RESET) {
               Open_Door();
           } else {
-              Stop_Motor(); // Đã mở hết cỡ
+              Stop_Motor(); 
           }
       }
       // KHÔNG CÓ NGƯỜI
       else {
-          // Kiểm tra xem còn trong thời gian chờ (3s) hay không
           if (HAL_GetTick() - last_motion_time < DOOR_DELAY_MS) {
-              // Vẫn còn thời gian chờ:
-              // Logic tối ưu: Nếu cửa chưa mở hết, hãy mở cho hết (để tránh cửa lơ lửng)
-              // Sau đó giữ trạng thái mở chờ hết 3s.
               if (limit_LS2 != GPIO_PIN_RESET) {
                   Open_Door();
               } else {
@@ -84,16 +68,15 @@ int main(void)
               }
           }
           else {
-              // ĐÃ HẾT THỜI GIAN CHỜ -> ĐÓNG CỬA
               if (limit_LS1 != GPIO_PIN_RESET) {
                   Close_Door();
               } else {
-                  Stop_Motor(); // Đã đóng kín
+                  Stop_Motor(); 
               }
           }
       }
 
-      HAL_Delay(10); // Giảm tải CPU và khử nhiễu nhẹ
+      HAL_Delay(10); 
   }
 }
 /**
